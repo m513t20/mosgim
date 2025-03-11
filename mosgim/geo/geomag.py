@@ -1,7 +1,7 @@
 import pyIGRF.calculate as calculate
 import numpy as np
-
-from .geo import subsol
+from datetime import datetime
+from .geo import sub_sol
 from mosgim.utils.time_util import sec_of_day
 # GEOMAGNETIC AND MODIP COORDINATES SECTION
 
@@ -19,12 +19,12 @@ GEOGRAPHIC_TRANSFORM = np.array([
 
 
 @np.vectorize
-def geo2mag(theta, phi, date):
+def geo2mag(theta:float, phi:float, date:datetime)->tuple[float,float]:
     ut = sec_of_day(date)
     doy = date.timetuple().tm_yday
     year = date.year
 
-    phi_sbs, theta_sbs = subsol(year, doy, ut)
+    phi_sbs, theta_sbs = sub_sol(year, doy, ut)
     r_sbs = np.array([np.sin(theta_sbs) * np.cos(phi_sbs), np.sin(theta_sbs) * np.sin(phi_sbs), np.cos(theta_sbs)])
 
     r_sbs_mag = GEOGRAPHIC_TRANSFORM.dot(r_sbs)
@@ -51,7 +51,7 @@ def geo2mag(theta, phi, date):
     return theta_m, mlt
 
 
-def inclination(lat, lon, alt=300., year=2005.):
+def make_inclination(lat:float, lon:float, alt:int=300., year:int=2005.)->float:
     """
     :return
          I is inclination (+ve down)
@@ -66,9 +66,9 @@ def inclination(lat, lon, alt=300., year=2005.):
     return i
 
 @np.vectorize
-def geo2modip(theta, phi, date):
+def geo2modip(theta:float, phi:float, date:datetime)->tuple[float,float]:
     year = date.year
-    I = inclination(lat=np.rad2deg(np.pi/2 - theta), lon=np.rad2deg(phi), alt=300., year=year) # alt=300 for modip300
+    I = make_inclination(lat=np.rad2deg(np.pi/2 - theta), lon=np.rad2deg(phi), alt=300., year=year) # alt=300 for modip300
     theta_m = np.pi/2 - np.arctan2(np.deg2rad(I), np.sqrt(np.cos(np.pi/2 - theta)))
     ut = sec_of_day(date)
     phi_sbs = np.deg2rad(180. - ut*15./3600)

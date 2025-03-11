@@ -3,7 +3,7 @@ from numpy import sin, cos, pi, arctan2, arcsin, floor, deg2rad
 RE = 6371.2
 HM=300
 
-def subsol(year, doy, ut):
+def sub_sol(year:int, doy:int, ut:int)->float:
     '''Finds subsolar geocentric longitude and latitude.
 
 
@@ -111,7 +111,7 @@ def subsol(year, doy, ut):
     return deg2rad(sbsllon), pi / 2 - deg2rad(sbsllat)
 
 
-def sub_ionospheric(s_lat, s_lon, hm, az, el, R=RE):
+def sub_ionospheric(s_lat:float, s_lon:float, hm:float, az:float, el:float, R:float=RE)->tuple[float,float]:
     """
     Calculates subionospheric point and delatas from site
     Parameters:

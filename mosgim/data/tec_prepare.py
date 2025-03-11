@@ -7,9 +7,10 @@ from scipy.signal import savgol_filter
 from collections import defaultdict
 from enum import Enum
 from concurrent.futures import ProcessPoolExecutor
+from pathlib import Path
 
-from mosgim.geo.geomag import geo2mag
-from mosgim.geo.geomag import geo2modip
+from mosgim.geo import geo2mag
+from mosgim.geo import geo2modip
 from mosgim.utils.time_util import sec_of_day, sec_of_interval
 
 sites = ['019b', '7odm', 'ab02', 'ab06', 'ab09', 'ab11', 'ab12', 'ab13',
@@ -73,7 +74,7 @@ class ProcessingType(Enum):
     def __str__(self):
         return self.value
 
-def process_data(data_generator):
+def process_data(data_generator)->defaultdict[str,list[any]]:
     all_data = defaultdict(list)
     count = 0
     for data, data_id in data_generator:
@@ -99,7 +100,7 @@ def process_data(data_generator):
     return all_data
 
 
-def get_continuos_intervals(data, maxgap=30, maxjump=1):
+def get_continuos_intervals(data:dict, maxgap:int=30, maxjump:int=1)->tuple[bool,list[tuple[int,int]]]:
     return getContInt(data['sec_of_day'][:], 
                       data['tec'][:], 
                       data['ipp_lon'][:], data['ipp_lat'][:], 
@@ -107,7 +108,7 @@ def get_continuos_intervals(data, maxgap=30, maxjump=1):
                       maxgap=maxgap, maxjump=maxjump)
 
 
-def getContInt(times, tec, lon, lat, el,  maxgap=30, maxjump=1):
+def getContInt(times:list[int], tec:float, lon:float, lat:float, el:float,  maxgap:int=30, maxjump:int=1)->tuple[bool,list[tuple[int,int]]]:
     r = np.array(range(len(times)))
     idx = np.isfinite(tec) & np.isfinite(lon) & np.isfinite(lat) & np.isfinite(el) & (el > 10.)
     r = r[idx]
@@ -127,8 +128,8 @@ def getContInt(times, tec, lon, lat, el,  maxgap=30, maxjump=1):
             intervals.append((beginning, last))
     return idx, intervals
 
-def process_intervals(data, maxgap, maxjump, derivative, 
-                      short = 3600, sparse = 600):
+def process_intervals(data:dict, maxgap:int, maxjump:int, derivative:bool, 
+                      short:int = 3600, sparse:int = 600)->defaultdict[str,list[any]]:
     result = defaultdict(list)
     tt = sec_of_day(data['datetime'])        
     idx, intervals = getContInt(tt, 
@@ -163,7 +164,7 @@ def process_intervals(data, maxgap, maxjump, derivative,
         result['ref'].append(data_ref)
     return result
     
-def combine_data(all_data, nchunks=1):
+def combine_data(all_data:dict, nchunks:int=1)->list[dict[str,any]]:
     count = 0
     for arr in all_data['dtec']:
         count += arr.shape[0]
@@ -198,7 +199,7 @@ def combine_data(all_data, nchunks=1):
     return combs
 
 
-def get_chunk_indexes(size, nchunks):
+def get_chunk_indexes(size:int, nchunks:int)->list[tuple[int,int]]:
     if nchunks > 1:
         step = int(size / nchunks)
         ichunks = [(i-step, i) for i in range(step, size, step)]
@@ -211,24 +212,24 @@ def get_chunk_indexes(size, nchunks):
         return [(0, size)]
     
 
-def calc_mag(comb, g2m):
+def calc_mag(comb:dict, g2m:function):
     colat, mlt = \
         g2m(np.pi/2 - rad(comb['lat']), rad(comb['lon']), comb['time'])  
     return colat, mlt
 
-def calc_mag_ref(comb, g2m):
+def calc_mag_ref(comb:dict, g2m:function):
     rcolat, rmlt = \
         g2m(np.pi/2 - rad(comb['rlat']), rad(comb['rlon']), comb['rtime'])  
     return  rcolat, rmlt
 
-def calc_mag_coordinates(comb):
+def calc_mag_coordinates(comb:dict)->dict[str,tuple[int,int]]:
     comb['colat_mdip'], comb['mlt_mdip'] = calc_mag(comb, geo2modip)  
     comb['rcolat_mdip'], comb['rmlt_mdip'] = calc_mag_ref(comb, geo2modip)
     comb['colat_mag'], comb['mlt_mag'] = calc_mag(comb, geo2mag)
     comb['rcolat_mag'], comb['rmlt_mag'] = calc_mag_ref(comb, geo2mag)
     return comb
     
-def calculate_seed_mag_coordinates_parallel(chunks, nworkers=3):
+def calculate_seed_mag_coordinates_parallel(chunks:list, nworkers=3):
     if len(chunks) < 1:
         return None
     if len(chunks) == 1:
@@ -262,7 +263,7 @@ def calculate_seed_mag_coordinates_parallel(chunks, nworkers=3):
     return comb
     
 
-def save_data(comb, modip_file, mag_file, day_date):
+def save_data(comb:dict, modip_file:Path, mag_file:Path, day_date:datetime):
     mags = [MagneticCoordType.mdip, MagneticCoordType.mag]
     for mtype, filename in zip(mags, [modip_file, mag_file]):
         data = get_data(comb, mtype, day_date)
@@ -271,7 +272,7 @@ def save_data(comb, modip_file, mag_file, day_date):
                 day = day_date,
                 **data)    
         
-def get_data(comb, mtype, day_date):
+def get_data(comb:dict, mtype, day_date:datetime)->dict[str,any]:
     postf = str(mtype)
     data = dict(time = sec_of_interval(comb['time'], day_date), 
                 mlt = comb['mlt_' + postf ], 

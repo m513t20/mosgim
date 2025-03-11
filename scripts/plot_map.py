@@ -8,24 +8,38 @@ from mosgim.data.tec_prepare import MagneticCoordType
 from mosgim.plotter.animation import plot_and_save
 from mosgim.mosg.map_creator import calculate_maps
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Solve raw TECs to ')
-    parser.add_argument('--in_file', 
-                        type=Path, 
-                        default=Path('/tmp/lcp.npz'),
-                        help='Path to data, after prepare script')
-    parser.add_argument('--out_file', 
-                        type=Path, 
-                        default=Path('/tmp/map.npz'),
-                        help='Path to data, after prepare script')
-    parser.add_argument('--animation_file', 
-                        type=Path, 
-                        default=Path('/tmp/animation.mp4'),
-                        help='Path to data, after prepare script')
+
+def main() -> None:
+    """
+    Основная функция для создания карт из данных LCP.
+    Загружает данные, вычисляет карты и сохраняет их в файл, а также создает анимацию.
+    """
+    parser = argparse.ArgumentParser(description='Solve raw TECs to maps')
+    parser.add_argument(
+        '--in_file', 
+        type=Path, 
+        default=Path('/tmp/lcp.npz'),
+        help='Path to data, after prepare script'
+    )
+    parser.add_argument(
+        '--out_file', 
+        type=Path, 
+        default=Path('/tmp/map.npz'),
+        help='Path to data, after prepare script'
+    )
+    parser.add_argument(
+        '--animation_file', 
+        type=Path, 
+        default=Path('/tmp/animation.mp4'),
+        help='Path to animation file'
+    )
+    
     args = parser.parse_args()
-    inputfile = args.in_file
-    outputfile = args.out_file
+    input_file = args.in_file
+    output_file = args.out_file
     animation_file = args.animation_file
-    data = np.load(inputfile, allow_pickle=True)
+    
+    data = np.load(input_file, allow_pickle=True)
     maps = calculate_maps(data['res'], MagneticCoordType.mdip, datetime(2017, 1, 2))
-    plot_and_save(maps, animation_file, outputfile)
+    
+    plot_and_save(maps, animation_file, output_file)

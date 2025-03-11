@@ -10,9 +10,9 @@ from scipy.sparse import lil_matrix, csr_matrix
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor
 
-from mosgim.geo.geomag import geo2mag
-from mosgim.geo.geomag import geo2modip
-from mosgim.data.tec_prepare import MagneticCoordType
+from mosgim.geo import geo2mag
+from mosgim.geo import geo2modip
+from mosgim.data import MagneticCoordType
 
 RE = 6371200.
 IPPh = 450000.
@@ -25,14 +25,14 @@ sigma_v = 0.015  # TECU - allowed variability for each coef between two consecut
  
 GB_CHUNK = 15000 
 
-def MF(el):
+def MF(el:float)->float:
     """
     :param el: elevation angle in rads
     """
     return 1./np.sqrt(1 - (RE * np.cos(el) / (RE + IPPh)) ** 2)
  
 
-def calc_coefs(M, N, theta, phi, sf):
+def calc_coefs(M:np.array, N:np.array, theta:list[float], phi:float, sf:float)->np.array:
     """
     :param M: meshgrid of harmonics degrees
     :param N: meshgrid of harmonics orders
@@ -53,10 +53,10 @@ vcoefs = np.vectorize(calc_coefs, excluded=['M','N'], otypes=[np.ndarray])
  
 
 
-def construct_normal_system(nbig, mbig, nT, ndays, 
-                            time, theta, phi, el, 
-                            time_ref, theta_ref, phi_ref, el_ref, rhs,
-                            linear):
+def construct_normal_system(nbig:int, mbig:int, nT:int, ndays:int, 
+                            time:list[datetime.time], theta:list[float], phi:list[float], el:list[float], 
+                            time_ref:list[datetime.time], theta_ref:list[float], phi_ref:list[float], 
+                            el_ref:list[float], rhs:list[float],linear:bool)->tuple[any,any]:
     """
     :param nbig: maximum order of spherical harmonic
     :param mbig: maximum degree of spherical harmonic
@@ -163,12 +163,13 @@ def construct_normal_system(nbig, mbig, nT, ndays,
     return N, b
 
 
-def stack_weight_solve_ns(nbig, mbig, nT, ndays, 
+
+def stack_weight_solve_ns(nbig:int, mbig:int, nT:int, ndays:int,
                           time_chunks, mlt_chunks, mcolat_chunks, el_chunks, 
                           time_ref_chunks, mlt_ref_chunks, mcolat_ref_chunks, el_ref_chunks, 
                           rhs_chunks,
                           nworkers=3, 
-                          linear=True):
+                          linear:bool=True)->tuple[any,any]:
 
     nT_add = 1 if linear else 0
     n_coefs = (nbig + 1)**2 - (nbig - mbig) * (nbig - mbig + 1)
@@ -207,7 +208,7 @@ def stack_weight_solve_ns(nbig, mbig, nT, ndays,
     
     return res1, N
 
-def solve_weights(data, gigs=2, nworkers=3, linear=True):
+def solve_weights(data:dict[str,np.array], gigs:int=2, nworkers:int=3, linear:bool=True)->tuple:
     chunk_size = GB_CHUNK * gigs
     time = data['time']
     mlt = data['mlt']
@@ -243,7 +244,7 @@ def solve_weights(data, gigs=2, nworkers=3, linear=True):
                                    linear=linear) 
     return res, N
 
-def make_matrix(nbig, mbig, theta, phi):
+def make_matrix(nbig:np.array, mbig:np.array, theta:np.array, phi:np.array)->np.array:
     n_ind = np.arange(0, nbig + 1, 1)
     m_ind = np.arange(-mbig, mbig + 1, 1)
     M, N = np.meshgrid(m_ind, n_ind)
@@ -263,7 +264,7 @@ def make_matrix(nbig, mbig, theta, phi):
     return matrix
 
 
-def calculate_maps(res, mag_type, date, **kwargs):
+def calculate_maps(res:np.array, mag_type:str, date:datetime.date, **kwargs)->dict[str,np.array]:
     nbig = kwargs.get('Y_order', 15) 
     mbig = kwargs.get('Y_degree', 15)
     nT = kwargs.get('number_time_steps', 24)

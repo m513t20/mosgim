@@ -4,7 +4,7 @@ import numpy as np
 from datetime import datetime
 from pathlib import Path
 
-from mosgim.data.tec_prepare import MagneticCoordType
+from mosgim.data import MagneticCoordType
 from mosgim.plotter.animation import plot_and_save
 from mosgim.mosg.map_creator import calculate_maps
 

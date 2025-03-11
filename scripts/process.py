@@ -6,7 +6,7 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime, timedelta
 
-from mosgim.data.tec_prepare import (DataSourceType,
+from mosgim.data import (DataSourceType,
                                        MagneticCoordType,
                                        ProcessingType,
                                        process_data,
@@ -15,7 +15,7 @@ from mosgim.data.tec_prepare import (DataSourceType,
                                        save_data,
                                        sites,
                                        calculate_seed_mag_coordinates_parallel)
-from mosgim.data.loader import (LoaderHDF, 
+from mosgim.data import (LoaderHDF, 
                                 LoaderTxt)
 from mosgim.mosg.map_creator import (solve_weights,
                                 calculate_maps)

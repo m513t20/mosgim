@@ -35,7 +35,7 @@ class CreateLCP:
         self.__vcoefs = np.vectorize(self.__calc_coefs, excluded=[
                                      'M', 'N'], otypes=[np.ndarray])
 
-    def __calc_coefs(self, M, N, theta, phi):
+    def __calc_coefs(self, M:np.array, N:np.array, theta:np.array, phi:np.array)->np.array:
         """
         Parameters
         ----------
@@ -61,7 +61,7 @@ class CreateLCP:
 
         return a
 
-    def construct(self, theta, phi, timeindex):
+    def construct(self, theta:np.array, phi:np.array, timeindex:int)->csr_matrix:
         """
         Parameters
         ----------
@@ -109,7 +109,7 @@ class CreateLCP:
 
         return A
 
-def create_lcp(data):
+def create_lcp(data:dict[str,np.array])->np.array:
     logger_configuration()
 
     nT = 24
